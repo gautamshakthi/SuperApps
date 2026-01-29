@@ -36,9 +36,10 @@
         </div>
 
         <div class="filter-section">
-            <input type="date" id="dateFilter" onchange="filterOrders()">
-            <button onclick="filterOrders()" class="checkout-btn" style="padding: 10px;">Filter</button>
-        </div>
+    <button onclick="setQuickDate(0)" class="cancel-all-btn" style="padding:10px; flex:1;">Today</button>
+    <button onclick="setQuickDate(1)" class="cancel-all-btn" style="padding:10px; flex:1;">Yesterday</button>
+    <input type="date" id="dateFilter" onchange="loadOrders()" style="flex:2; padding:8px; border-radius:10px; border:1px solid #ddd;">
+</div>
 
         <table class="order-table">
             <thead>

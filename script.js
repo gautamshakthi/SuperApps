@@ -79,9 +79,6 @@ function calculateTotal() {
     document.getElementById('item-count').innerText = `${count} Items`;
 }
 
-
-
-
 // ==========================================
 // 3. PAYMENT FLOW
 // ==========================================
@@ -97,9 +94,8 @@ function processCheckout() {
     window.location.href = upiLink;
 
     // Show ONLY the verification prompt when they return
-    setTimeout(() => { showVerificationModal(total); }, 7000);
+    setTimeout(() => { showVerificationModal(total); }, 2000);
 }
-
 
 function showVerificationModal(amount) {
     const overlay = document.createElement('div');
@@ -125,11 +121,11 @@ function finalizeOrder(amount) {
     playSuccessSound();
 
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
-
+    
     // 2. Generate Itemized Summary
     let itemHtmlSummary = ""; // For the App Screen
     let rawTextSummary = "";  // For the QR Code and WhatsApp
-
+    
     menuItems.forEach(item => {
         const qty = cart[item.id] || 0;
         if (qty > 0) {
@@ -186,23 +182,12 @@ function finalizeOrder(amount) {
     // 5. Auto-notify Owner via WhatsApp after a short delay
     setTimeout(() => {
         sendWhatsAppReceipt(orderID, amount, encodeURIComponent(rawTextSummary));
-    }, 1500);
+    }, 2000);
 }
 
 function sendWhatsAppReceipt(id, amt, itemsEncoded) {
     const decodedItems = decodeURIComponent(itemsEncoded).replace(/, /g, '%0a• ');
     const msg = `🔖 *NEW PAID ORDER*%0a------------------%0a*Order ID:* #${id}%0a%0a*Items:*%0a• ${decodedItems}%0a------------------%0a*Total Paid: ₹${amt}*%0a------------------%0a✅ _Verified by Customer_`;
-
+    
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }
-
-
-
-
-
-
-
-
-
-
-

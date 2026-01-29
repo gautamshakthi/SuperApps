@@ -94,7 +94,7 @@ function processCheckout() {
     window.location.href = upiLink;
 
     // Show ONLY the verification prompt when they return
-    setTimeout(() => { showVerificationModal(total); }, 2000);
+    setTimeout(() => { showVerificationModal(total); }, 6000);
 }
 
 function showVerificationModal(amount) {
@@ -121,9 +121,8 @@ function finalizeOrder(amount) {
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
     
     let itemHtml = ""; 
-    let rawList = ""; // This will store the text for WhatsApp
+    let textList = ""; // This is for the WhatsApp text
     
-    // Recalculate precisely from the current cart
     menuItems.forEach(item => {
         const qty = cart[item.id] || 0;
         if (qty > 0) {
@@ -131,55 +130,74 @@ function finalizeOrder(amount) {
                             <span>${item.eng} x ${qty}</span>
                             <b>₹${item.price * qty}</b>
                          </div>`;
-            // Adding a clear newline for WhatsApp formatting
-            rawList += `• ${item.eng} x ${qty}%0a`; 
+            // We use simple text here; we will encode it later
+            textList += `• ${item.eng} x ${qty}\n`; 
         }
     });
 
-    saveOrderToLog(amount, rawList, "Success");
+    saveOrderToLog(amount, textList, "Success");
     
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('ID:'+orderID+'|Total:'+amount)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('ID:'+orderID+'|Amt:'+amount)}`;
     
     document.getElementById('verify-area').style.display = 'none';
     const res = document.getElementById('result-area');
     res.style.display = 'block';
     
+    // ... (inside finalizeOrder where you set res.innerHTML)
     res.innerHTML = `
         <div class="success-ui" style="text-align:center;">
             <div class="check-icon">✨ ✅ ✨</div>
             <h2 style="color:#27ae60">Payment Verified!</h2>
+            
+            <div id="popup-tip" style="display:none; background:#fff3cd; color:#856404; padding:10px; border-radius:10px; font-size:13px; margin-bottom:10px; border:1px solid #ffeeba;"></div>
+
             <img src="${qrUrl}" style="width:140px; margin:10px 0;">
+            
             <div style="background:#f9f9f9; padding:15px; border-radius:15px; text-align:left; margin-bottom:15px;">
-                <p style="margin:0 0 10px; font-weight:bold;">ORDER #${orderID}</p>
+                <p style="margin:0 0 10px; font-weight:bold;">ORDER #${id}</p>
                 ${itemHtml}
                 <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
                 <p style="display:flex; justify-content:space-between; margin:0;">
-                    <b>Total Paid:</b> <b style="color:#27ae60">₹${amount}</b>
+                    <b>Total Paid:</b> <b style="color:#27ae60">₹${amt}</b>
                 </p>
             </div>
-            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${rawList}')" class="pay-btn" style="width:100%">
+
+            <button onclick="sendWhatsAppReceipt('${id}', '${amt}', ${JSON.stringify(items)})" class="pay-btn" style="width:100%">
                 Send Receipt to WhatsApp
             </button>
             <button onclick="location.reload()" class="close-link">Place New Order</button>
         </div>`;
 
-    // Trigger the automated send
+    // Automated trigger after 2.5 seconds
     setTimeout(() => { 
-        sendWhatsAppReceipt(orderID, amount, rawList); 
-    }, 2500);
+        sendWhatsAppReceipt(orderID, amount, textList); 
+    }, 2000);
 }
 
-function sendWhatsAppReceipt(id, amt, itemsText) {
-    // The itemsText already contains %0a for new lines
-    const message = `🔖 *NEW PAID ORDER*%0a` +
-                    `--------------------------%0a` +
-                    `*Order ID:* #${id}%0a` +
-                    `*Items:*%0a${itemsText}` +
-                    `--------------------------%0a` +
-                    `*Total Paid: ₹${amt}*%0a` +
-                    `--------------------------%0a` +
-                    `✅ Verified at Thirumagal Coffee House`;
+function sendWhatsAppReceipt(id, amt, items) {
+    // 1. Construct the message
+    const fullMessage = `🔖 *NEW PAID ORDER*\n` +
+                        `--------------------------\n` +
+                        `*Order ID:* #${id}\n` +
+                        `*Items:*\n${items}` +
+                        `--------------------------\n` +
+                        `*Total Paid: ₹${amt}*\n` +
+                        `--------------------------\n` +
+                        `✅ Verified at Thirumagal Coffee House`;
 
-    const waUrl = `https://wa.me/${MY_PHONE}?text=${message}`;
-    window.open(waUrl, '_blank');
+    const encodedMsg = encodeURIComponent(fullMessage);
+    const waUrl = `https://wa.me/${MY_PHONE}?text=${encodedMsg}`;
+    
+    // 2. Attempt to open
+    const newWindow = window.open(waUrl, '_blank');
+
+    // 3. Detect if Popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        // Show the manual tip if blocked
+        const tip = document.getElementById('popup-tip');
+        if (tip) {
+            tip.style.display = 'block';
+            tip.innerHTML = `⚠️ <b>Popup Blocked:</b> Please click the button below to send your receipt!`;
+        }
+    }
 }

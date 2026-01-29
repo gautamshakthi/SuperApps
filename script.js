@@ -1,4 +1,3 @@
-// script.js
 const menuItems = [
     { id: 1, eng: "Tea", tam: "டீ", price: 15, img: "tea.jpg" },
     { id: 2, eng: "Coffee", tam: "காபி", price: 20, img: "coffee.jpg" },
@@ -44,7 +43,6 @@ menuItems.forEach(item => {
 function updateQty(id, change) {
     cart[id] = (cart[id] || 0) + change;
     if (cart[id] < 0) cart[id] = 0;
-    
     document.getElementById(`qty-${id}`).innerText = cart[id];
     calculateTotal();
 }
@@ -62,14 +60,13 @@ function calculateTotal() {
     document.getElementById('item-count').innerText = `${count} Items`;
 }
 
-
-__________________________________________________________________________________
-
-// THE FIXED CHECKOUT LOGIC
+// MAIN CHECKOUT FUNCTION
 function processCheckout() {
-    const total = document.getElementById('total-price').innerText.replace('₹', '');
-    if (total == "0") {
-        alert("Oops! Your tray is empty. ☕ Please add a delicious drink!");
+    const totalText = document.getElementById('total-price').innerText;
+    const total = totalText.replace('₹', '');
+    
+    if (total === "0" || total === "") {
+        alert("Oops! Your tray is empty. ☕");
         return;
     }
     showPaymentModal(total);
@@ -86,35 +83,36 @@ function showPaymentModal(amount) {
         <div class="payment-card">
             <div id="step-pay">
                 <div class="payment-icon">💸</div>
-                <h3>Ready to Pay?</h3>
+                <h3>Confirm Order</h3>
                 <p>Total: <strong style="color:#27ae60; font-size: 24px;">₹${amount}</strong></p>
                 <div class="button-group">
-                    <a href="${upiLink}" class="pay-btn" onclick="handlePayClick('${amount}')">
-                        Confirm & Open UPI Apps
-                    </a>
+                    <a href="${upiLink}" class="pay-btn" id="pay-trigger">Pay Now</a>
                     <button onclick="closeModal()" class="cancel-btn">Cancel</button>
                 </div>
             </div>
             <div id="step-verify" style="display:none;">
                 <div class="payment-icon">⏳</div>
                 <h3>Verifying...</h3>
-                <p>Finished paying? Click below for receipt.</p>
-                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn" style="background:#27ae60; color:white; padding:15px; border-radius:12px; width:100%; border:none; font-weight:bold;">
-                   I Have Paid - Get Receipt
+                <p>Once you finish paying in GPay/PhonePe, click below:</p>
+                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn" style="background:#27ae60; color:white; padding:15px; border-radius:12px; width:100%; border:none; font-weight:bold; cursor:pointer;">
+                   Get Receipt & QR Code
                 </button>
             </div>
         </div>
     `;
+    
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.classList.add('active'), 10);
-}
+    
+    // Smooth Entry
+    setTimeout(() => overlay.classList.add('active'), 50);
 
-function handlePayClick(amount) {
-    // Switch UI after a short delay so the app launch isn't interrupted
-    setTimeout(() => {
-        document.getElementById('step-pay').style.display = 'none';
-        document.getElementById('step-verify').style.display = 'block';
-    }, 2000);
+    // Use an Event Listener for the Link to avoid browser blocks
+    document.getElementById('pay-trigger').addEventListener('click', function(e) {
+        setTimeout(() => {
+            document.getElementById('step-pay').style.display = 'none';
+            document.getElementById('step-verify').style.display = 'block';
+        }, 1500);
+    });
 }
 
 function generateFinalSuccess(amount) {
@@ -125,7 +123,7 @@ function generateFinalSuccess(amount) {
     card.innerHTML = `
         <div class="success-ui">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color: #2e7d32;">Order Placed!</h2>
+            <h2 style="color: #2e7d32;">Order Received!</h2>
             <p>Order <b>#${orderID}</b> is being prepared.</p>
             <img src="${qrUrl}" class="qr-code">
             <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}')" class="pay-btn">
@@ -143,16 +141,6 @@ function sendWhatsAppReceipt(id, amt) {
 
 function closeModal() {
     const overlay = document.getElementById('paymentOverlay');
-    const card = document.querySelector('.payment-card');
-    card.innerHTML = `
-        <div class="failure-ui">
-            <div class="payment-icon">☕</div>
-            <h3>No Problem!</h3>
-            <p>Ready whenever you are!</p>
-        </div>
-    `;
-    setTimeout(() => {
-        overlay.classList.remove('active');
-        setTimeout(() => overlay.remove(), 300);
-    }, 1500);
+    overlay.classList.remove('active');
+    setTimeout(() => overlay.remove(), 300);
 }

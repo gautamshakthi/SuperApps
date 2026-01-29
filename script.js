@@ -117,77 +117,69 @@ function showVerificationModal(amount) {
 }
 
 function finalizeOrder(amount) {
-    // 1. Sensory Feedback
     playSuccessSound();
-
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
     
-    // 2. Generate Itemized Summary
-    let itemHtmlSummary = ""; // For the App Screen
-    let rawTextSummary = "";  // For the QR Code and WhatsApp
+    let itemHtml = ""; 
+    let rawList = ""; // This will store the text for WhatsApp
     
+    // Recalculate precisely from the current cart
     menuItems.forEach(item => {
         const qty = cart[item.id] || 0;
         if (qty > 0) {
-            const itemTotal = item.price * qty;
-            // HTML for the pleasing UI
-            itemHtmlSummary += `
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
-                    <span>${item.eng} (${item.tam}) x ${qty}</span>
-                    <span style="font-weight:bold;">₹${itemTotal}</span>
-                </div>`;
-            // Plain text for QR and WhatsApp
-            rawTextSummary += `${item.eng} x ${qty}, `;
+            itemHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>${item.eng} x ${qty}</span>
+                            <b>₹${item.price * qty}</b>
+                         </div>`;
+            // Adding a clear newline for WhatsApp formatting
+            rawList += `• ${item.eng} x ${qty}%0a`; 
         }
     });
 
-    // 3. QR Code Generation (Includes Order ID, Total, and Items)
-    const qrData = `ID:${orderID}|Total:${amount}|Items:${rawTextSummary}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
-
-    // 4. Update UI to Success State
-    const verifyArea = document.getElementById('verify-area');
-    if(verifyArea) verifyArea.style.display = 'none';
-
-    const successArea = document.getElementById('success-area');
-    successArea.style.display = 'block';
-
-    successArea.innerHTML = `
-        <div class="success-ui" style="animation: slideUp 0.5s ease;">
+    saveOrderToLog(amount, rawList, "Success");
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('ID:'+orderID+'|Total:'+amount)}`;
+    
+    document.getElementById('verify-area').style.display = 'none';
+    const res = document.getElementById('result-area');
+    res.style.display = 'block';
+    
+    res.innerHTML = `
+        <div class="success-ui" style="text-align:center;">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color:#27ae60; margin-top:0;">Payment Verified!</h2>
-            
-            <div class="qr-container" style="background:#fff; padding:15px; border-radius:15px; border:2px dashed #27ae60; display:inline-block;">
-                <img src="${qrUrl}" class="qr-code" style="width:160px; height:160px;">
-                <p style="font-size:12px; color:#666; margin-top:5px;">Order #${orderID}</p>
+            <h2 style="color:#27ae60">Payment Verified!</h2>
+            <img src="${qrUrl}" style="width:140px; margin:10px 0;">
+            <div style="background:#f9f9f9; padding:15px; border-radius:15px; text-align:left; margin-bottom:15px;">
+                <p style="margin:0 0 10px; font-weight:bold;">ORDER #${orderID}</p>
+                ${itemHtml}
+                <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
+                <p style="display:flex; justify-content:space-between; margin:0;">
+                    <b>Total Paid:</b> <b style="color:#27ae60">₹${amount}</b>
+                </p>
             </div>
-
-            <div class="order-summary" style="background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:15px; margin: 20px 0; text-align: left;">
-                <p style="margin-top:0; color:#888; font-size:12px;">ORDER DETAILS</p>
-                ${itemHtmlSummary}
-                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px;">
-                    <span>Total Paid</span>
-                    <span style="color:#27ae60;">₹${amount}</span>
-                </div>
-            </div>
-
-            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${encodeURIComponent(rawTextSummary)}')" class="pay-btn" style="width:100%;">
-                Share Receipt to WhatsApp
+            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${rawList}')" class="pay-btn" style="width:100%">
+                Send Receipt to WhatsApp
             </button>
-            <button onclick="location.reload()" class="close-link">Back to Menu</button>
-        </div>
-    `;
+            <button onclick="location.reload()" class="close-link">Place New Order</button>
+        </div>`;
 
-    // 5. Auto-notify Owner via WhatsApp after a short delay
-    setTimeout(() => {
-        sendWhatsAppReceipt(orderID, amount, encodeURIComponent(rawTextSummary));
-    }, 2000);
+    // Trigger the automated send
+    setTimeout(() => { 
+        sendWhatsAppReceipt(orderID, amount, rawList); 
+    }, 2500);
 }
 
-function sendWhatsAppReceipt(id, amt, itemsEncoded) {
-    const decodedItems = decodeURIComponent(itemsEncoded).replace(/, /g, '%0a• ');
-    const msg = `🔖 *NEW PAID ORDER*%0a------------------%0a*Order ID:* #${id}%0a%0a*Items:*%0a• ${decodedItems}%0a------------------%0a*Total Paid: ₹${amt}*%0a------------------%0a✅ _Verified by Customer_`;
-    
-    window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
+function sendWhatsAppReceipt(id, amt, itemsText) {
+    // The itemsText already contains %0a for new lines
+    const message = `🔖 *NEW PAID ORDER*%0a` +
+                    `--------------------------%0a` +
+                    `*Order ID:* #${id}%0a` +
+                    `*Items:*%0a${itemsText}` +
+                    `--------------------------%0a` +
+                    `*Total Paid: ₹${amt}*%0a` +
+                    `--------------------------%0a` +
+                    `✅ Verified at Thirumagal Coffee House`;
+
+    const waUrl = `https://wa.me/${MY_PHONE}?text=${message}`;
+    window.open(waUrl, '_blank');
 }

@@ -1,15 +1,15 @@
-// script.js
+	// script.js
 const menuItems = [
-    { id: 1, eng: "Tea", tam: "டீ", price: 1, img: "tea.jpg" },
-    { id: 2, eng: "Coffee", tam: "காபி", price: 1, img: "coffee.jpg" },
-    { id: 3, eng: "Milk", tam: "பால்", price: 1, img: "milk.jpg" },
-    { id: 4, eng: "Boost", tam: "பூஸ்ட்", price: 1, img: "boost.jpg" },
-    { id: 5, eng: "Horlicks", tam: "ஹார்லிக்ஸ்", price: 1, img: "horlicks.jpg" },
-    { id: 6, eng: "Ginger Tea", tam: "இஞ்சி டீ", price: 1, img: "ginger-tea.jpg" },
-    { id: 7, eng: "Ginger Milk", tam: "இஞ்சி பால்", price: 1, img: "ginger-milk.jpg" },
-    { id: 8, eng: "Black Tea", tam: "பிளாக் டீ", price: 1, img: "black-tea.jpg" },
-    { id: 9, eng: "Green Tea", tam: "கிரீன் டீ", price: 1, img: "green-tea.jpg" },
-    { id: 10, eng: "Black Coffee", tam: "பிளாக் காபி", price: 1, img: "black-coffee.jpg" }
+    { id: 1, eng: "Tea", tam: "டீ", price: 15, img: "tea.jpg" },
+    { id: 2, eng: "Coffee", tam: "காபி", price: 20, img: "coffee.jpg" },
+    { id: 3, eng: "Milk", tam: "பால்", price: 15, img: "milk.jpg" },
+    { id: 4, eng: "Boost", tam: "பூஸ்ட்", price: 25, img: "boost.jpg" },
+    { id: 5, eng: "Horlicks", tam: "ஹார்லிக்ஸ்", price: 25, img: "horlicks.jpg" },
+    { id: 6, eng: "Ginger Tea", tam: "இஞ்சி டீ", price: 20, img: "ginger-tea.jpg" },
+    { id: 7, eng: "Ginger Milk", tam: "இஞ்சி பால்", price: 20, img: "ginger-milk.jpg" },
+    { id: 8, eng: "Black Tea", tam: "பிளாக் டீ", price: 12, img: "black-tea.jpg" },
+    { id: 9, eng: "Green Tea", tam: "கிரீன் டீ", price: 25, img: "green-tea.jpg" },
+    { id: 10, eng: "Black Coffee", tam: "பிளாக் காபி", price: 18, img: "black-coffee.jpg" }
 ];
 
 let cart = {};

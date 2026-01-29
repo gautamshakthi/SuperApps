@@ -80,40 +80,61 @@ function calculateTotal() {
 }
 
 // ==========================================
-// 3. PAYMENT FLOW
+// 4. PAYMENT FLOW (AUTO-DETECT RETURN)
 // ==========================================
-function processCheckout() {
-    const total = document.getElementById('total-price').innerText.replace('₹', '');
-    if (total === "0" || total === "") {
-        alert("Oops! Your tray is empty. ☕");
-        return;
-    }
-    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=CafeOrder`;
-    
-    // Redirect to UPI
-    window.location.href = upiLink;
+let isPaymentPending = false;
+let pendingAmount = 0;
 
-    // Show ONLY the verification prompt when they return
-    setTimeout(() => { showVerificationModal(total); }, 2000);
+function processCheckout() {
+    const total = document.getElementById('total-price').innerText.replace('₹', '');
+    if (total === "0" || total === "") {
+        alert("Oops! Your tray is empty. ☕");
+        return;
+    }
+
+    // Set flags so the app knows to wait for the user to come back
+    isPaymentPending = true;
+    pendingAmount = total;
+
+    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=CafeOrder`;
+    
+    // Redirect to UPI app
+    window.location.href = upiLink;
 }
 
+// THE "AUTO-DETECT" MAGIC:
+// This listens for the user returning to the browser tab
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isPaymentPending) {
+        // Wait a tiny 1-second delay for smooth rendering after the app switch
+        setTimeout(() => {
+            showVerificationModal(pendingAmount);
+            // Reset flag so it doesn't open multiple times
+            isPaymentPending = false; 
+        }, 1000);
+    }
+});
+
 function showVerificationModal(amount) {
-    const overlay = document.createElement('div');
-    overlay.className = "payment-overlay active";
-    overlay.id = "statusOverlay";
-    overlay.innerHTML = `
-        <div class="payment-card status-card">
-            <div id="verify-area">
-                <div class="payment-icon">⌛</div>
-                <h3>Confirm Payment</h3>
-                <p>Once you finish payment in GPay/PhonePe, click below to generate your receipt.</p>
-                <button onclick="finalizeOrder('${amount}')" class="checkout-btn" style="width:100%">I Have Paid Successfully</button>
-                <button onclick="location.reload()" class="close-link">Payment Failed / Cancel</button>
-            </div>
-            <div id="success-area" style="display:none;"></div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+    // Check if modal already exists to prevent duplicates
+    if (document.getElementById('statusOverlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = "payment-overlay active";
+    overlay.id = "statusOverlay";
+    overlay.innerHTML = `
+        <div class="payment-card status-card">
+            <div id="verify-area">
+                <div class="payment-icon">⌛</div>
+                <h3>Welcome Back!</h3>
+                <p>Did you complete the payment of <strong>₹${amount}</strong>?</p>
+                <button onclick="finalizeOrder('${amount}')" class="checkout-btn" style="width:100%">I Have Paid Successfully</button>
+                <button onclick="handleFailure('${amount}')" class="close-link">Payment Failed / Cancel</button>
+            </div>
+            <div id="success-area" style="display:none;"></div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 }
 
 function finalizeOrder(amount) {

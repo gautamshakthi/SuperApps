@@ -170,3 +170,31 @@ body {
 }
 
 .payment-note { font-size: 12px; color: #aaa; }
+
+
+
+.success-ui {
+    padding: 10px;
+    animation: slideUp 0.4s ease-out;
+}
+
+.check-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+}
+
+.qr-code {
+    margin: 20px auto;
+    display: block;
+    border: 5px solid #f1f1f1;
+    border-radius: 10px;
+}
+
+.close-link {
+    background: none;
+    border: none;
+    color: #888;
+    margin-top: 15px;
+    text-decoration: underline;
+    cursor: pointer;
+}

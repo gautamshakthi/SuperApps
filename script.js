@@ -63,50 +63,91 @@ function processCheckout() {
 
 __________________________________________________________________________________
 
+// ==========================================
+// CONFIGURATION: SET YOUR DETAILS HERE
+// ==========================================
+const MY_UPI_ID = "9003705725@ybl"; // <--- ADD YOUR UPI ID HERE (e.g., 9003705725@ybl)
+const MY_PHONE = "919003705725";  // <--- ADD YOUR WHATSAPP NUMBER HERE (with country code)
+const CAFE_NAME = "Thirumagal Coffee House";
+// ==========================================
+
 function processCheckout() {
     const total = document.getElementById('total-price').innerText.replace('₹', '');
-    const upiID = "9003705725@ybl"; // USE YOUR ACTUAL UPI ID HERE
-    const name = encodeURIComponent("Thirumagal Coffee House");
     
-    // This is the most compatible format for Indian UPI apps
-    const upiLink = `upi://pay?pa=${upiID}&pn=${name}&am=${total}&cu=INR&tn=CafeOrder`;
+    if (total == "0") {
+        // PLEASING FAILURE MESSAGE
+        alert("Oops! Your tray is empty. ☕ Please add a delicious drink to proceed!");
+        return;
+    }
 
-    // 1. Open WhatsApp first
-    window.open(`https://wa.me/919876543210?text=OrderTotal:${total}`, '_blank');
+    // Generate Universal UPI Link
+    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=CafeOrder`;
 
-    // 2. Show the Payment UI
+    // Show the Payment UI (The "Pay Now" and "Cancel" buttons)
     showPaymentModal(upiLink, total);
 }
 __________________________________________________________________________________
 
-function showPaymentModal(link, amount) {
-    // Remove existing modal if any
-    const existing = document.querySelector('.payment-overlay');
-    if (existing) existing.remove();
+// Add this QR Code Library to your HTML <head>: 
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
+function showPaymentModal(link, amount) {
     const overlay = document.createElement('div');
-    overlay.className = "payment-overlay";
+    overlay.className = "payment-overlay active";
     overlay.innerHTML = `
         <div class="payment-card">
-            <div class="payment-icon">💸</div>
-            <h3>Complete Payment</h3>
-            <p class="payment-amount">Total: <span>₹${amount}</span></p>
-            
-            <div class="button-group">
-                <a href="${link}" class="pay-btn">
-                    Pay Now
-                </a>
-                <button onclick="closeModal()" class="cancel-btn">
-                    Cancel
-                </button>
+            <div id="payment-ui">
+                <div class="payment-icon">💸</div>
+                <h3>Complete Payment</h3>
+                <p class="payment-amount">Total: <span>₹${amount}</span></p>
+                <div class="button-group">
+                    <a href="${link}" class="pay-btn" onclick="showVerificationUI('${amount}')">Pay Now</a>
+                    <button onclick="closeModal()" class="cancel-btn">Cancel</button>
+                </div>
             </div>
-            <p class="payment-note">Secure UPI Payment</p>
+            <div id="verify-ui" style="display:none;">
+                <div class="payment-icon">✅</div>
+                <h3>Paid Successfully?</h3>
+                <p>Once you finish payment in your UPI app, click below to get your receipt.</p>
+                <button onclick="generateReceipt('${amount}')" class="receipt-btn">Confirm & Get Receipt</button>
+            </div>
         </div>
     `;
     document.body.appendChild(overlay);
+}
+
+function showVerificationUI() {
+    document.getElementById('payment-ui').style.display = 'none';
+    document.getElementById('verify-ui').style.display = 'block';
+}
+
+
+function generateReceipt(amount) {
+    const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
     
-    // Smooth fade in
-    setTimeout(() => overlay.classList.add('active'), 10);
+    // PLEASING SUCCESS MESSAGE
+    const successHTML = `
+        <div class="success-ui">
+            <div class="check-icon">✨ ✅ ✨</div>
+            <h2 style="color: #2e7d32;">Order Placed!</h2>
+            <p>We've received your payment of <b>₹${amount}</b>.</p>
+            <p>Your order <b>#${orderID}</b> is now in the kitchen!</p>
+            
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${orderID}" class="qr-code">
+            
+            <button onclick="sendFinalWhatsApp('${orderID}', '${amount}')" class="pay-btn">
+                Send Receipt to WhatsApp
+            </button>
+            <button onclick="closeModal()" class="close-link">Back to Menu</button>
+        </div>
+    `;
+    
+    document.querySelector('.payment-card').innerHTML = successHTML;
+}
+
+function sendFinalWhatsApp(id, amt) {
+    const msg = `🔖 *CAFE RECEIPT* %0a------------------%0aOrder ID: ${id}%0aAmount: ₹${amt}%0aStatus: ✅ PAID%0a------------------%0aThank you! Visit again. 🙏`;
+    window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }
 
 function closeModal() {

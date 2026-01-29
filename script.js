@@ -1,4 +1,4 @@
-	// script.js
+// script.js
 const menuItems = [
     { id: 1, eng: "Tea", tam: "டீ", price: 15, img: "tea.jpg" },
     { id: 2, eng: "Coffee", tam: "காபி", price: 20, img: "coffee.jpg" },
@@ -13,6 +13,11 @@ const menuItems = [
 ];
 
 let cart = {};
+
+// CONFIGURATION
+const MY_UPI_ID = "9003705725@ybl"; 
+const MY_PHONE = "919003705725";  
+const CAFE_NAME = "Thirumagal Coffee House";
 
 const container = document.getElementById('menu-container');
 
@@ -39,7 +44,6 @@ menuItems.forEach(item => {
 function updateQty(id, change) {
     cart[id] = (cart[id] || 0) + change;
     if (cart[id] < 0) cart[id] = 0;
-    
     document.getElementById(`qty-${id}`).innerText = cart[id];
     calculateTotal();
 }
@@ -57,19 +61,7 @@ function calculateTotal() {
     document.getElementById('item-count').innerText = `${count} Items`;
 }
 
-function processCheckout() {
-    alert("Order Placed Successfully!");
-}
-
-__________________________________________________________________________________
-
-// ==========================================
-// CONFIGURATION: SET YOUR DETAILS HERE
-// ==========================================
-const MY_UPI_ID = "9003705725@ybl"; // <--- CHANGE THIS
-const MY_PHONE = "919003705725";  // <--- CHANGE THIS
-const CAFE_NAME = "Thirumagal Coffee House";
-
+// THE FIXED CHECKOUT LOGIC
 function processCheckout() {
     const total = document.getElementById('total-price').innerText.replace('₹', '');
     if (total == "0") {
@@ -81,106 +73,82 @@ function processCheckout() {
 
 function showPaymentModal(amount) {
     const overlay = document.createElement('div');
-    overlay.className = "payment-overlay active";
+    overlay.className = "payment-overlay";
+    overlay.id = "paymentOverlay";
     
-    // 1. Build the clean UPI link
     const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${amount}&cu=INR&tn=CafeOrder`;
 
-    // 2. Create the Card
     overlay.innerHTML = `
         <div class="payment-card">
             <div id="step-pay">
                 <div class="payment-icon">💸</div>
                 <h3>Ready to Pay?</h3>
                 <p>Total: <strong style="color:#27ae60; font-size: 24px;">₹${amount}</strong></p>
-                
                 <div class="button-group">
-                    <a href="${upiLink}" class="pay-btn" id="final-pay-trigger">
-                        Confirm & Open GPay/PhonePe
+                    <a href="${upiLink}" class="pay-btn" onclick="handlePayClick('${amount}')">
+                        Confirm & Open UPI Apps
                     </a>
                     <button onclick="closeModal()" class="cancel-btn">Cancel</button>
                 </div>
-                <p style="font-size:11px; color:#999; margin-top:10px;">If apps don't open, ensure you are on a Mobile Device.</p>
             </div>
-
             <div id="step-verify" style="display:none;">
                 <div class="payment-icon">⏳</div>
                 <h3>Verifying...</h3>
-                <p>Once you finish paying, click below:</p>
-                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn">I Have Paid - Get Receipt</button>
+                <p>Finished paying? Click below for receipt.</p>
+                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn" style="background:#27ae60; color:white; padding:15px; border-radius:12px; width:100%; border:none; font-weight:bold;">
+                   I Have Paid - Get Receipt
+                </button>
             </div>
         </div>
     `;
     document.body.appendChild(overlay);
-
-    // 3. This listener handles the UI switch AFTER the link is clicked
-    document.getElementById('final-pay-trigger').addEventListener('click', function() {
-        // We wait 1.5 seconds to give the UPI app time to launch before switching the screen
-        setTimeout(() => {
-            document.getElementById('step-pay').style.display = 'none';
-            document.getElementById('step-verify').style.display = 'block';
-        }, 1500);
-    });
+    setTimeout(() => overlay.classList.add('active'), 10);
 }
 
-
-// Transition from "Pay" to "Verify"
-function moveToVerify(amount) {
-    // Small delay to allow the UPI app to trigger first
+function handlePayClick(amount) {
+    // Switch UI after a short delay so the app launch isn't interrupted
     setTimeout(() => {
         document.getElementById('step-pay').style.display = 'none';
         document.getElementById('step-verify').style.display = 'block';
-    }, 1000);
+    }, 2000);
 }
 
-// STEP 2: SUCCESS VERIFICATION & QR GENERATION
 function generateFinalSuccess(amount) {
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=OrderID:${orderID}|Total:${amount}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=OrderID:${orderID}`;
 
     const card = document.querySelector('.payment-card');
     card.innerHTML = `
         <div class="success-ui">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color: #2e7d32;">Payment Received!</h2>
+            <h2 style="color: #2e7d32;">Order Placed!</h2>
             <p>Order <b>#${orderID}</b> is being prepared.</p>
-            
-            <img src="${qrUrl}" class="qr-code" alt="Scan at Counter">
-            
+            <img src="${qrUrl}" class="qr-code">
             <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}')" class="pay-btn">
                 Send Receipt to WhatsApp
             </button>
-            <button onclick="location.reload()" class="close-link">Order Something Else</button>
+            <button onclick="location.reload()" class="close-link">Back to Menu</button>
         </div>
     `;
 }
 
-// STEP 3: WHATSAPP RECEIPT
 function sendWhatsAppReceipt(id, amt) {
     const msg = `🔖 *CAFE RECEIPT* %0a------------------%0aOrder ID: ${id}%0aAmount: ₹${amt}%0aStatus: ✅ PAID%0a------------------%0aSee you at the counter! 🙏`;
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }
 
-// STEP 4: PLEASING FAILURE HANDLER
 function closeModal() {
-    const overlay = document.querySelector('.payment-overlay');
-    // Change text to show a pleasing message before closing
+    const overlay = document.getElementById('paymentOverlay');
     const card = document.querySelector('.payment-card');
     card.innerHTML = `
         <div class="failure-ui">
             <div class="payment-icon">☕</div>
             <h3>No Problem!</h3>
-            <p>Your items are still in the cart. We're ready whenever you are!</p>
-            <button onclick="document.querySelector('.payment-overlay').remove()" class="pay-btn" style="background:#666">Back to Menu</button>
+            <p>Ready whenever you are!</p>
         </div>
     `;
-    setTimeout(() => { if(overlay) overlay.remove(); }, 3000);
-}
-
-
-__________________________________________________________________________________
-function closeModal() {
-    const overlay = document.querySelector('.payment-overlay');
-    overlay.classList.remove('active');
-    setTimeout(() => overlay.remove(), 300);
+    setTimeout(() => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    }, 1500);
 }

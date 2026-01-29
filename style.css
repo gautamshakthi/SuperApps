@@ -1,17 +1,25 @@
-/* style.css */
+/* ==========================================
+   1. CORE VARIABLES & RESET
+   ========================================== */
 :root {
     --primary: #6f4e37; /* Coffee Brown */
     --accent: #27ae60;  /* Fresh Green */
     --bg: #f8f9fa;
+    --white: #ffffff;
+    --shadow: 0 8px 20px rgba(0,0,0,0.05);
 }
 
 body {
     font-family: 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg);
     margin: 0;
-    padding-bottom: 100px; /* Space for checkout bar */
+    padding-bottom: 120px; /* Space for sticky checkout bar */
+    overflow-x: hidden;
 }
 
+/* ==========================================
+   2. MENU GRID & ITEM CARDS
+   ========================================== */
 .menu-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -20,13 +28,17 @@ body {
 }
 
 .item-card {
-    background: white;
+    background: var(--white);
     border-radius: 20px;
     padding: 12px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow);
     position: relative;
     text-align: center;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease;
+}
+
+.item-card:active {
+    transform: scale(0.98);
 }
 
 .price-tag {
@@ -39,6 +51,7 @@ body {
     border-radius: 12px;
     font-size: 0.8rem;
     font-weight: bold;
+    z-index: 10;
 }
 
 .item-img {
@@ -49,10 +62,21 @@ body {
     margin-bottom: 10px;
 }
 
-.item-names h3 { margin: 5px 0 2px; font-size: 1.1rem; }
-.item-names p { margin: 0; color: #666; font-size: 0.9rem; }
+.item-names h3 { 
+    margin: 5px 0 2px; 
+    font-size: 1.1rem; 
+    color: #333;
+}
 
-/* Quantity Controller - Stylish Pill Design */
+.item-names p { 
+    margin: 0; 
+    color: #666; 
+    font-size: 0.9rem; 
+}
+
+/* ==========================================
+   3. QUANTITY CONTROLLER (PILL DESIGN)
+   ========================================== */
 .qty-controller {
     display: flex;
     align-items: center;
@@ -68,56 +92,100 @@ body {
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: white;
+    background: var(--white);
     font-size: 1.2rem;
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
 }
 
+.btn-qty:active {
+    background: #e0e0e0;
+}
+
+/* ==========================================
+   4. STICKY CHECKOUT BAR
+   ========================================== */
 .checkout-bar {
     position: fixed;
-    bottom: 0;
+    bottom: 0; 
     width: 100%;
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: var(--white);
+    display: flex; 
+    flex-direction: column;
     padding: 15px 20px;
     box-sizing: border-box;
     box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.total-info {
+    display: flex; 
+    justify-content: space-between;
+    margin-bottom: 12px; 
+    font-weight: bold; 
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.checkout-actions {
+    display: flex; 
+    gap: 10px;
+}
+
+.cancel-all-btn {
+    flex: 1; 
+    background: #eee; 
+    border: none;
+    padding: 14px; 
+    border-radius: 12px; 
+    color: #666;
+    font-weight: 600; 
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .checkout-btn {
-    background: linear-gradient(135deg, #6f4e37, #4b3621);
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 12px;
+    flex: 2; 
+    background: linear-gradient(135deg, var(--primary), #4b3621);
+    color: white; 
+    border: none; 
+    padding: 14px;
+    border-radius: 12px; 
     font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
     box-shadow: 0 4px 15px rgba(111, 78, 55, 0.3);
 }
 
-----------------------------------------------------------------------------------
-
-/* style.css additions */
-
-/* Dark blurred background */
+/* ==========================================
+   5. PAYMENT OVERLAY & STATUS CARD
+   ========================================== */
 .payment-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
-    display: flex; align-items: flex-end; justify-content: center;
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; 
+    align-items: flex-end; 
+    justify-content: center;
     z-index: 2000;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
-.payment-overlay.active { opacity: 1; }
+.payment-overlay.active { 
+    opacity: 1; 
+    pointer-events: auto;
+}
 
-/* The sliding card */
 .payment-card {
-    background: white;
+    background: var(--white);
     width: 100%;
     max-width: 450px;
     padding: 30px 20px;
@@ -127,25 +195,39 @@ body {
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.payment-overlay.active .payment-card { transform: translateY(0); }
-
-.payment-icon { font-size: 50px; margin-bottom: 10px; }
-
-.payment-amount span {
-    font-size: 28px;
-    font-weight: 800;
-    color: #27ae60;
+.payment-overlay.active .payment-card { 
+    transform: translateY(0); 
 }
 
-/* Stylish Buttons */
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 25px 0;
+.payment-icon { 
+    font-size: 60px; 
+    margin-bottom: 15px; 
+}
+
+/* ==========================================
+   6. SUCCESS & QR UI
+   ========================================== */
+.success-ui {
+    padding: 10px;
+    animation: slideUp 0.4s ease-out;
+}
+
+.check-icon {
+    font-size: 70px;
+    margin-bottom: 10px;
+}
+
+.qr-code {
+    margin: 20px auto;
+    display: block;
+    border: 5px solid #f1f1f1;
+    border-radius: 15px;
+    width: 180px;
+    height: 180px;
 }
 
 .pay-btn {
+    display: block;
     background: linear-gradient(135deg, #1e88e5, #1565c0);
     color: white;
     text-decoration: none;
@@ -154,40 +236,7 @@ body {
     font-weight: bold;
     font-size: 18px;
     box-shadow: 0 4px 15px rgba(30, 136, 229, 0.4);
-    transition: transform 0.2s;
-}
-
-.pay-btn:active { transform: scale(0.96); }
-
-.cancel-btn {
-    background: #f1f1f1;
-    color: #666;
-    border: none;
-    padding: 14px;
-    border-radius: 16px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.payment-note { font-size: 12px; color: #aaa; }
-
-
-
-.success-ui {
-    padding: 10px;
-    animation: slideUp 0.4s ease-out;
-}
-
-.check-icon {
-    font-size: 50px;
-    margin-bottom: 10px;
-}
-
-.qr-code {
-    margin: 20px auto;
-    display: block;
-    border: 5px solid #f1f1f1;
-    border-radius: 10px;
+    margin-top: 15px;
 }
 
 .close-link {
@@ -197,4 +246,44 @@ body {
     margin-top: 15px;
     text-decoration: underline;
     cursor: pointer;
+    font-size: 14px;
+}
+
+/* ==========================================
+   7. ANIMATIONS
+   ========================================== */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* ... (Keep your existing CSS parts 1-5 as they are) ... */
+
+/* SUCCESS ICON ANIMATION */
+.check-icon {
+    font-size: 70px;
+    margin-bottom: 10px;
+    display: inline-block;
+    animation: successBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes successBounce {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* Ensure the QR code is clear */
+.qr-code {
+    margin: 10px auto;
+    display: block;
+    width: 180px;
+    height: 180px;
+}
+
+/* Add this to your .payment-card section for better success looks */
+.status-card {
+    background: linear-gradient(to bottom, #ffffff, #f0fff4);
 }

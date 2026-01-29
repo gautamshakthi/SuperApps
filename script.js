@@ -191,3 +191,34 @@ function sendWhatsAppReceipt(id, amt, itemsEncoded) {
     
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }
+
+function closeModal() {
+    const overlay = document.getElementById('statusOverlay') || document.getElementById('paymentOverlay');
+    if (!overlay) return;
+
+    const card = overlay.querySelector('.payment-card');
+    
+    // PLEASING FAILURE & EMPATHY UI
+    card.innerHTML = `
+        <div class="failure-ui" style="animation: slideUp 0.4s ease;">
+            <div class="payment-icon">☕</div>
+            <h2 style="color: #d32f2f; margin-top:0;">Payment Not Completed</h2>
+            
+            <div class="empathy-msg" style="text-align: left; background: #fff5f5; padding: 15px; border-radius: 15px; border-left: 5px solid #ff5252; margin: 20px 0;">
+                <p style="margin: 0; line-height: 1.6; color: #555;">
+                    <strong>We're sorry the order couldn't go through.</strong><br><br>
+                    If any amount was debited from your account, please don't worry—it will be <b>automatically refunded</b> to your bank account within <b>7 working days</b> as per standard banking policy.<br><br>
+                    Feel free to try ordering again when you're ready!
+                </p>
+            </div>
+
+            <button onclick="location.reload()" class="pay-btn" style="background: #666; width: 100%;">
+                Try Again / மீண்டும் முயற்சிக்கவும்
+            </button>
+            <p style="margin-top: 15px; font-size: 13px; color: #888;">Thirumagal Coffee House appreciates your patience.</p>
+        </div>
+    `;
+
+    // We keep the message visible so they can read the refund info, 
+    // but the user can click "Try Again" to clear it.
+}

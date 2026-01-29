@@ -287,3 +287,25 @@ body {
 .status-card {
     background: linear-gradient(to bottom, #ffffff, #f0fff4);
 }
+
+
+.failure-ui {
+    padding: 10px;
+    text-align: center;
+}
+
+.empathy-msg p {
+    font-size: 14px;
+}
+
+.failure-ui .payment-icon {
+    color: #f44336;
+    font-size: 60px;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}

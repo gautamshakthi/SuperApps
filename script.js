@@ -117,59 +117,77 @@ function showVerificationModal(amount) {
 }
 
 function finalizeOrder(amount) {
-    // TRIGGER SOUND ONLY NOW
+    // 1. Sensory Feedback
     playSuccessSound();
 
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
     
-    // Build Itemized List
-    let itemSummary = "";
-    let waSummary = "";
+    // 2. Generate Itemized Summary
+    let itemHtmlSummary = ""; // For the App Screen
+    let rawTextSummary = "";  // For the QR Code and WhatsApp
+    
     menuItems.forEach(item => {
-        if (cart[item.id] > 0) {
-            itemSummary += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <span>${item.eng} x ${cart[item.id]}</span>
-                <span>₹${item.price * cart[item.id]}</span>
-            </div>`;
-            waSummary += `• ${item.eng} x ${cart[item.id]}%0a`;
+        const qty = cart[item.id] || 0;
+        if (qty > 0) {
+            const itemTotal = item.price * qty;
+            // HTML for the pleasing UI
+            itemHtmlSummary += `
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+                    <span>${item.eng} (${item.tam}) x ${qty}</span>
+                    <span style="font-weight:bold;">₹${itemTotal}</span>
+                </div>`;
+            // Plain text for QR and WhatsApp
+            rawTextSummary += `${item.eng} x ${qty}, `;
         }
     });
 
-    // Build QR Data with IDs and items
-    const qrData = `OrderID:${orderID}|Total:${amount}|Items:${waSummary.replace(/%0a/g, ',')}`;
+    // 3. QR Code Generation (Includes Order ID, Total, and Items)
+    const qrData = `ID:${orderID}|Total:${amount}|Items:${rawTextSummary}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
 
+    // 4. Update UI to Success State
     const verifyArea = document.getElementById('verify-area');
-    verifyArea.style.display = 'none';
+    if(verifyArea) verifyArea.style.display = 'none';
+
     const successArea = document.getElementById('success-area');
     successArea.style.display = 'block';
 
     successArea.innerHTML = `
-        <div class="success-ui">
+        <div class="success-ui" style="animation: slideUp 0.5s ease;">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color:#27ae60">Order Successful!</h2>
-            <div class="qr-container" style="border: 2px dashed #27ae60; padding: 10px; border-radius: 15px; background: #fff;">
-                <img src="${qrUrl}" class="qr-code">
+            <h2 style="color:#27ae60; margin-top:0;">Payment Verified!</h2>
+            
+            <div class="qr-container" style="background:#fff; padding:15px; border-radius:15px; border:2px dashed #27ae60; display:inline-block;">
+                <img src="${qrUrl}" class="qr-code" style="width:160px; height:160px;">
+                <p style="font-size:12px; color:#666; margin-top:5px;">Order #${orderID}</p>
             </div>
-            <div class="order-summary" style="background:#f9f9f9; padding:15px; border-radius:15px; margin: 15px 0; text-align: left; font-size:14px;">
-                <p><strong>Order ID: #${orderID}</strong></p>
-                <hr style="border:0; border-top:1px solid #ddd;">
-                ${itemSummary}
-                <hr style="border:0; border-top:1px solid #ddd;">
-                <p style="display:flex; justify-content:space-between;"><strong>Total Paid:</strong> <strong>₹${amount}</strong></p>
+
+            <div class="order-summary" style="background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:15px; margin: 20px 0; text-align: left;">
+                <p style="margin-top:0; color:#888; font-size:12px;">ORDER DETAILS</p>
+                ${itemHtmlSummary}
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px;">
+                    <span>Total Paid</span>
+                    <span style="color:#27ae60;">₹${amount}</span>
+                </div>
             </div>
-            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${waSummary}')" class="pay-btn">Share Receipt to WhatsApp</button>
-            <button onclick="location.reload()" class="close-link">Place New Order</button>
+
+            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${encodeURIComponent(rawTextSummary)}')" class="pay-btn" style="width:100%;">
+                Share Receipt to WhatsApp
+            </button>
+            <button onclick="location.reload()" class="close-link">Back to Menu</button>
         </div>
     `;
 
-    // AUTO-NOTIFY OWNER
+    // 5. Auto-notify Owner via WhatsApp after a short delay
     setTimeout(() => {
-        sendWhatsAppReceipt(orderID, amount, waSummary);
-    }, 1500);
+        sendWhatsAppReceipt(orderID, amount, encodeURIComponent(rawTextSummary));
+    }, 2000);
 }
 
-function sendWhatsAppReceipt(id, amt, items) {
-    const msg = `🔖 *NEW PAID ORDER*%0a------------------%0aOrder ID: ${id}%0aItems:%0a${items}------------------%0a*Total Paid: ₹${amt}*%0a------------------%0aStatus: ✅ VERIFIED`;
+function sendWhatsAppReceipt(id, amt, itemsEncoded) {
+    const decodedItems = decodeURIComponent(itemsEncoded).replace(/, /g, '%0a• ');
+    const msg = `🔖 *NEW PAID ORDER*%0a------------------%0a*Order ID:* #${id}%0a%0a*Items:*%0a• ${decodedItems}%0a------------------%0a*Total Paid: ₹${amt}*%0a------------------%0a✅ _Verified by Customer_`;
+    
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }

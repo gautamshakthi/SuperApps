@@ -1,5 +1,5 @@
 // ==========================================
-// 1. CONFIGURATION & SOUND
+// 1. CONFIGURATION & SOUND LOGIC
 // ==========================================
 const MY_UPI_ID = "9003705725@ybl"; 
 const MY_PHONE = "919003705725";  
@@ -17,12 +17,29 @@ function playSuccessSound() {
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
         oscillator.connect(gainNode);
         gainNode.connect(context.destination);
-        oscillator.start(); oscillator.stop(context.currentTime + 0.5);
-    } catch (e) { console.log("Sound blocked"); }
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.5);
+    } catch (e) { console.log("Audio play blocked by browser."); }
 }
 
 // ==========================================
-// 2. MENU DATA
+// 2. DATA LOGGING FOR ADMIN
+// ==========================================
+function saveOrderToLog(amount, items, status) {
+    let orders = JSON.parse(localStorage.getItem('cafeOrders') || '[]');
+    const newOrder = {
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        amount: amount,
+        items: items,
+        status: status
+    };
+    orders.push(newOrder);
+    localStorage.setItem('cafeOrders', JSON.stringify(orders));
+}
+
+// ==========================================
+// 3. MENU DATA & RENDERING
 // ==========================================
 const menuItems = [
     { id: 1, eng: "Tea", tam: "டீ", price: 15, img: "tea.jpg" },
@@ -46,12 +63,16 @@ menuItems.forEach(item => {
     card.innerHTML = `
         <div class="price-tag">₹${item.price}</div>
         <img src="${item.img}" class="item-img" alt="${item.eng}">
-        <div class="item-names"><h3>${item.eng}</h3><p>${item.tam}</p></div>
+        <div class="item-names">
+            <h3>${item.eng}</h3>
+            <p>${item.tam}</p>
+        </div>
         <div class="qty-controller">
             <button class="btn-qty" onclick="updateQty(${item.id}, -1)">−</button>
             <span id="qty-${item.id}">0</span>
             <button class="btn-qty" onclick="updateQty(${item.id}, 1)">+</button>
-        </div>`;
+        </div>
+    `;
     container.appendChild(card);
 });
 
@@ -64,97 +85,128 @@ function updateQty(id, change) {
 
 function calculateTotal() {
     let total = 0; let count = 0;
-    menuItems.forEach(item => { if (cart[item.id]) { total += cart[item.id] * item.price; count += cart[item.id]; } });
+    menuItems.forEach(item => {
+        if (cart[item.id]) {
+            total += cart[item.id] * item.price;
+            count += cart[item.id];
+        }
+    });
     document.getElementById('total-price').innerText = `₹${total}`;
     document.getElementById('item-count').innerText = `${count} Items`;
 }
 
 // ==========================================
-// 3. PAYMENT FLOW
+// 4. PAYMENT FLOW
 // ==========================================
 function processCheckout() {
     const total = document.getElementById('total-price').innerText.replace('₹', '');
-    if (total === "0") { alert("Oops! Your tray is empty. ☕"); return; }
-    window.location.href = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=Order`;
-    setTimeout(() => { showStatusOverlay(total); }, 2000);
+    if (total === "0" || total === "") {
+        alert("Oops! Your tray is empty. ☕");
+        return;
+    }
+    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=CafeOrder`;
+    window.location.href = upiLink;
+    setTimeout(() => { showVerificationModal(total); }, 2000);
 }
 
-function showStatusOverlay(amount) {
+function handleFailure(amount) {
+    const confirmed = confirm("Wait! If you already paid, please click 'Cancel' and then 'I Have Paid Successfully'. Do you still want to report a failure?");
+    if (confirmed) {
+        // Log the failure for Admin
+        let itemsOrdered = "";
+        menuItems.forEach(item => { if(cart[item.id] > 0) itemsOrdered += `${item.eng} x ${cart[item.id]}, `; });
+        saveOrderToLog(amount, itemsOrdered, "Failed");
+        
+        // Show empathy message
+        const card = document.querySelector('.payment-card');
+        card.innerHTML = `
+            <div class="failure-ui" style="text-align:center; padding:20px;">
+                <div style="font-size:50px;">☕</div>
+                <h2 style="color:#d32f2f;">Order Not Completed</h2>
+                <p>If any amount was debited, it will be refunded within 7 days. Please try again!</p>
+                <button onclick="location.reload()" class="checkout-btn" style="width:100%">Back to Menu</button>
+            </div>`;
+    }
+}
+
+function showVerificationModal(amount) {
     const overlay = document.createElement('div');
     overlay.className = "payment-overlay active";
     overlay.id = "statusOverlay";
     overlay.innerHTML = `
-        <div class="payment-card">
+        <div class="payment-card status-card">
             <div id="verify-area">
                 <div class="payment-icon">⌛</div>
-                <h3>Verify Your Payment</h3>
-                <p>Returning from UPI app? Please confirm below.</p>
+                <h3>Confirm Payment</h3>
+                <p>Once you finish payment in GPay/PhonePe, click below.</p>
                 <button onclick="finalizeOrder('${amount}')" class="checkout-btn" style="width:100%">I Have Paid Successfully</button>
-                <button onclick="handleFailure()" class="close-link">Payment Failed / Cancel</button>
+                <button onclick="handleFailure('${amount}')" class="close-link">Payment Failed / Cancel</button>
             </div>
-            <div id="result-area" style="display:none;"></div>
-        </div>`;
+            <div id="success-area" style="display:none;"></div>
+        </div>
+    `;
     document.body.appendChild(overlay);
-}
-
-function handleFailure() {
-    // Safety catch to prevent accidental clicks
-    const confirmed = confirm("Wait! If you already completed the payment, please click 'Cancel' and then 'I Have Paid Successfully' to get your receipt. Do you still want to report a failure?");
-    if (!confirmed) return;
-
-    const area = document.getElementById('verify-area');
-    area.innerHTML = `
-        <div class="failure-ui">
-            <div class="payment-icon" style="color:#d32f2f">☕</div>
-            <h2 style="color:#d32f2f">Order Not Completed</h2>
-            <div style="text-align:left; background:#fff5f5; padding:15px; border-radius:15px; border-left:5px solid #ff5252; margin:15px 0; font-size:14px;">
-                <p><strong>We're sorry for the trouble.</strong><br><br>
-                If money was debited, it will be <b>refunded automatically</b> within <b>7 working days</b>.<br><br>
-                Please try ordering again!</p>
-            </div>
-            <button onclick="location.reload()" class="checkout-btn" style="width:100%; background:#666">Back to Menu</button>
-        </div>`;
 }
 
 function finalizeOrder(amount) {
     playSuccessSound();
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
-    let itemHtml = ""; let rawList = "";
+    let itemHtmlSummary = ""; 
+    let rawTextSummary = "";  
+    
     menuItems.forEach(item => {
         const qty = cart[item.id] || 0;
         if (qty > 0) {
-            itemHtml += `<div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px;"><span>${item.eng} x ${qty}</span><b>₹${item.price * qty}</b></div>`;
-            rawList += `• ${item.eng} x ${qty}%0a`;
+            const itemTotal = item.price * qty;
+            itemHtmlSummary += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px;">
+                <span>${item.eng} (${item.tam}) x ${qty}</span>
+                <span style="font-weight:bold;">₹${itemTotal}</span>
+            </div>`;
+            rawTextSummary += `${item.eng} x ${qty}, `;
         }
     });
 
-    const qrData = `ID:${orderID}|Total:${amount}|Items:${rawList.replace(/%0a/g, ',')}`;
+    // --- LOG THE SUCCESS FOR ADMIN DASHBOARD ---
+    saveOrderToLog(amount, rawTextSummary, "Success");
+
+    const qrData = `ID:${orderID}|Total:${amount}|Items:${rawTextSummary}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
-    
+
     document.getElementById('verify-area').style.display = 'none';
-    const res = document.getElementById('result-area');
-    res.style.display = 'block';
-    res.innerHTML = `
-        <div class="success-ui">
+    const successArea = document.getElementById('success-area');
+    successArea.style.display = 'block';
+
+    successArea.innerHTML = `
+        <div class="success-ui" style="animation: slideUp 0.5s ease; text-align:center;">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color:#27ae60">Payment Verified!</h2>
-            <div style="background:#fff; padding:10px; border-radius:15px; border:2px dashed #27ae60; display:inline-block; margin-bottom:15px;">
-                <img src="${qrUrl}" style="width:150px;">
+            <h2 style="color:#27ae60; margin-top:0;">Payment Verified!</h2>
+            <div class="qr-container" style="background:#fff; padding:15px; border-radius:15px; border:2px dashed #27ae60; display:inline-block;">
+                <img src="${qrUrl}" class="qr-code" style="width:160px; height:160px;">
+                <p style="font-size:12px; color:#666; margin-top:5px;">Order #${orderID}</p>
             </div>
-            <div style="background:#f9f9f9; padding:15px; border-radius:15px; text-align:left; margin-bottom:15px;">
-                <p style="margin:0 0 10px; font-weight:bold; color:#666;">ORDER #${orderID}</p>
-                ${itemHtml}
-                <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
-                <p style="display:flex; justify-content:space-between; margin:0;"><b>Total Paid:</b> <b style="color:#27ae60">₹${amount}</b></p>
+            <div class="order-summary" style="background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:15px; margin: 20px 0; text-align: left;">
+                <p style="margin-top:0; color:#888; font-size:12px;">ORDER DETAILS</p>
+                ${itemHtmlSummary}
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px;">
+                    <span>Total Paid</span>
+                    <span style="color:#27ae60;">₹${amount}</span>
+                </div>
             </div>
-            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${rawList}')" class="pay-btn" style="width:100%">Share to WhatsApp</button>
-            <button onclick="location.reload()" class="close-link">Back to Menu</button>
-        </div>`;
-    
-    setTimeout(() => { sendWhatsAppReceipt(orderID, amount, rawList); }, 2000);
+            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', '${encodeURIComponent(rawTextSummary)}')" class="pay-btn" style="width:100%; border:none; padding:15px; border-radius:12px; background:linear-gradient(135deg, #1e88e5, #1565c0); color:white; font-weight:bold;">
+                Share Receipt to WhatsApp
+            </button>
+            <button onclick="location.reload()" class="close-link" style="display:block; margin:15px auto; background:none; border:none; text-decoration:underline; color:#888;">Back to Menu</button>
+        </div>
+    `;
+
+    setTimeout(() => {
+        sendWhatsAppReceipt(orderID, amount, encodeURIComponent(rawTextSummary));
+    }, 2000);
 }
 
-function sendWhatsAppReceipt(id, amt, items) {
-    const msg = `🔖 *NEW PAID ORDER*%0a------------------%0a*ID:* #${id}%0a*Items:*%0a${items}------------------%0a*Total Paid: ₹${amt}*%0a✅ Verified`;
+function sendWhatsAppReceipt(id, amt, itemsEncoded) {
+    const decodedItems = decodeURIComponent(itemsEncoded).replace(/, /g, '%0a• ');
+    const msg = `🔖 *NEW PAID ORDER*%0a------------------%0a*Order ID:* #${id}%0a%0a*Items:*%0a• ${decodedItems}%0a------------------%0a*Total Paid: ₹${amt}*%0a------------------%0a✅ _Verified by Customer_`;
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }

@@ -17,9 +17,11 @@ html, body {
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    padding-bottom: env(safe-area-inset-bottom, 120px); /* Adjusts for Android nav bar */
+    /* Use svh for mobile address bar compatibility */
+    min-height: 100svh; 
+    margin: 0;
+    padding-bottom: 140px; /* Increased padding so last items are visible */
+    box-sizing: border-box;
 }
 
 /* ==========================================
@@ -169,6 +171,7 @@ body {
 /* ==========================================
    5. PAYMENT OVERLAY & STATUS CARD
    ========================================== */
+
 .payment-overlay {
     position: fixed;
     top: 0; left: 0; 
@@ -181,14 +184,16 @@ body {
     z-index: 2000;
 }
 
+
 .payment-overlay.active { 
     opacity: 1; 
     pointer-events: auto;
 }
 
 .payment-card {
-    max-height: 85vh; /* Keep it within the screen */
-    overflow-y: auto;
+    max-height: 90svh; /* Prevents card from going off-screen */
+    overflow-y: auto;   /* Allows scrolling if order is very long */
+    border-radius: 25px 25px 0 0;
 }
 
 

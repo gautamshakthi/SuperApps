@@ -143,26 +143,20 @@ function finalizeOrder(amount) {
     const res = document.getElementById('result-area');
     res.style.display = 'block';
     
-    // ... (inside finalizeOrder where you set res.innerHTML)
     res.innerHTML = `
         <div class="success-ui" style="text-align:center;">
             <div class="check-icon">✨ ✅ ✨</div>
             <h2 style="color:#27ae60">Payment Verified!</h2>
-            
-            <div id="popup-tip" style="display:none; background:#fff3cd; color:#856404; padding:10px; border-radius:10px; font-size:13px; margin-bottom:10px; border:1px solid #ffeeba;"></div>
-
             <img src="${qrUrl}" style="width:140px; margin:10px 0;">
-            
             <div style="background:#f9f9f9; padding:15px; border-radius:15px; text-align:left; margin-bottom:15px;">
-                <p style="margin:0 0 10px; font-weight:bold;">ORDER #${id}</p>
+                <p style="margin:0 0 10px; font-weight:bold;">ORDER #${orderID}</p>
                 ${itemHtml}
                 <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
                 <p style="display:flex; justify-content:space-between; margin:0;">
-                    <b>Total Paid:</b> <b style="color:#27ae60">₹${amt}</b>
+                    <b>Total Paid:</b> <b style="color:#27ae60">₹${amount}</b>
                 </p>
             </div>
-
-            <button onclick="sendWhatsAppReceipt('${id}', '${amt}', ${JSON.stringify(items)})" class="pay-btn" style="width:100%">
+            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}', ${JSON.stringify(textList)})" class="pay-btn" style="width:100%">
                 Send Receipt to WhatsApp
             </button>
             <button onclick="location.reload()" class="close-link">Place New Order</button>
@@ -171,11 +165,11 @@ function finalizeOrder(amount) {
     // Automated trigger after 2.5 seconds
     setTimeout(() => { 
         sendWhatsAppReceipt(orderID, amount, textList); 
-    }, 2000);
+    }, 2500);
 }
 
 function sendWhatsAppReceipt(id, amt, items) {
-    // 1. Construct the message
+    // 1. Construct the full message in plain text first
     const fullMessage = `🔖 *NEW PAID ORDER*\n` +
                         `--------------------------\n` +
                         `*Order ID:* #${id}\n` +
@@ -185,19 +179,10 @@ function sendWhatsAppReceipt(id, amt, items) {
                         `--------------------------\n` +
                         `✅ Verified at Thirumagal Coffee House`;
 
+    // 2. Use encodeURIComponent to make the WHOLE message URL-safe
     const encodedMsg = encodeURIComponent(fullMessage);
     const waUrl = `https://wa.me/${MY_PHONE}?text=${encodedMsg}`;
     
-    // 2. Attempt to open
-    const newWindow = window.open(waUrl, '_blank');
-
-    // 3. Detect if Popup was blocked
-    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-        // Show the manual tip if blocked
-        const tip = document.getElementById('popup-tip');
-        if (tip) {
-            tip.style.display = 'block';
-            tip.innerHTML = `⚠️ <b>Popup Blocked:</b> Please click the button below to send your receipt!`;
-        }
-    }
+    console.log("Opening WhatsApp with URL:", waUrl); // For debugging
+    window.open(waUrl, '_blank');
 }

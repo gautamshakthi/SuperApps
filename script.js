@@ -83,31 +83,46 @@ function showPaymentModal(amount) {
     const overlay = document.createElement('div');
     overlay.className = "payment-overlay active";
     
-    // STEP 1: Define the Payment UI (Initial State)
+    // 1. Build the clean UPI link
     const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${amount}&cu=INR&tn=CafeOrder`;
 
+    // 2. Create the Card
     overlay.innerHTML = `
         <div class="payment-card">
             <div id="step-pay">
                 <div class="payment-icon">💸</div>
-                <h3>Complete Payment</h3>
-                <p>Total: <strong style="color:#27ae60">₹${amount}</strong></p>
+                <h3>Ready to Pay?</h3>
+                <p>Total: <strong style="color:#27ae60; font-size: 24px;">₹${amount}</strong></p>
+                
                 <div class="button-group">
-                    <a href="${upiLink}" class="pay-btn" onclick="moveToVerify('${amount}')">Pay Now</a>
-                    <button onclick="closeModal()" class="cancel-btn">Cancel Order</button>
+                    <a href="${upiLink}" class="pay-btn" id="final-pay-trigger">
+                        Confirm & Open GPay/PhonePe
+                    </a>
+                    <button onclick="closeModal()" class="cancel-btn">Cancel</button>
                 </div>
+                <p style="font-size:11px; color:#999; margin-top:10px;">If apps don't open, ensure you are on a Mobile Device.</p>
             </div>
 
             <div id="step-verify" style="display:none;">
                 <div class="payment-icon">⏳</div>
-                <h3>Verifying Payment...</h3>
-                <p>Once you finish in your UPI app, click below to generate your digital receipt.</p>
-                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn">Confirm & Get Receipt</button>
+                <h3>Verifying...</h3>
+                <p>Once you finish paying, click below:</p>
+                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn">I Have Paid - Get Receipt</button>
             </div>
         </div>
     `;
     document.body.appendChild(overlay);
+
+    // 3. This listener handles the UI switch AFTER the link is clicked
+    document.getElementById('final-pay-trigger').addEventListener('click', function() {
+        // We wait 1.5 seconds to give the UPI app time to launch before switching the screen
+        setTimeout(() => {
+            document.getElementById('step-pay').style.display = 'none';
+            document.getElementById('step-verify').style.display = 'block';
+        }, 1500);
+    });
 }
+
 
 // Transition from "Pay" to "Verify"
 function moveToVerify(amount) {

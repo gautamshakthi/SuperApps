@@ -44,6 +44,7 @@ menuItems.forEach(item => {
 function updateQty(id, change) {
     cart[id] = (cart[id] || 0) + change;
     if (cart[id] < 0) cart[id] = 0;
+    
     document.getElementById(`qty-${id}`).innerText = cart[id];
     calculateTotal();
 }
@@ -60,6 +61,9 @@ function calculateTotal() {
     document.getElementById('total-price').innerText = `₹${total}`;
     document.getElementById('item-count').innerText = `${count} Items`;
 }
+
+
+__________________________________________________________________________________
 
 // THE FIXED CHECKOUT LOGIC
 function processCheckout() {

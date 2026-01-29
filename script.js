@@ -66,90 +66,104 @@ ________________________________________________________________________________
 // ==========================================
 // CONFIGURATION: SET YOUR DETAILS HERE
 // ==========================================
-const MY_UPI_ID = "9003705725@ybl"; // <--- ADD YOUR UPI ID HERE (e.g., 9003705725@ybl)
-const MY_PHONE = "919003705725";  // <--- ADD YOUR WHATSAPP NUMBER HERE (with country code)
+const MY_UPI_ID = "9003705725@ybl"; // <--- CHANGE THIS
+const MY_PHONE = "919003705725";  // <--- CHANGE THIS
 const CAFE_NAME = "Thirumagal Coffee House";
-// ==========================================
 
 function processCheckout() {
     const total = document.getElementById('total-price').innerText.replace('₹', '');
-    
     if (total == "0") {
-        // PLEASING FAILURE MESSAGE
-        alert("Oops! Your tray is empty. ☕ Please add a delicious drink to proceed!");
+        alert("Oops! Your tray is empty. ☕ Please add a delicious drink!");
         return;
     }
-
-    // Generate Universal UPI Link
-    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${total}&cu=INR&tn=CafeOrder`;
-
-    // Show the Payment UI (The "Pay Now" and "Cancel" buttons)
-    showPaymentModal(upiLink, total);
+    showPaymentModal(total);
 }
-__________________________________________________________________________________
 
-// Add this QR Code Library to your HTML <head>: 
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-
-function showPaymentModal(link, amount) {
+function showPaymentModal(amount) {
     const overlay = document.createElement('div');
     overlay.className = "payment-overlay active";
+    
+    // STEP 1: Define the Payment UI (Initial State)
+    const upiLink = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(CAFE_NAME)}&am=${amount}&cu=INR&tn=CafeOrder`;
+
     overlay.innerHTML = `
         <div class="payment-card">
-            <div id="payment-ui">
+            <div id="step-pay">
                 <div class="payment-icon">💸</div>
                 <h3>Complete Payment</h3>
-                <p class="payment-amount">Total: <span>₹${amount}</span></p>
+                <p>Total: <strong style="color:#27ae60">₹${amount}</strong></p>
                 <div class="button-group">
-                    <a href="${link}" class="pay-btn" onclick="showVerificationUI('${amount}')">Pay Now</a>
-                    <button onclick="closeModal()" class="cancel-btn">Cancel</button>
+                    <a href="${upiLink}" class="pay-btn" onclick="moveToVerify('${amount}')">Pay Now</a>
+                    <button onclick="closeModal()" class="cancel-btn">Cancel Order</button>
                 </div>
             </div>
-            <div id="verify-ui" style="display:none;">
-                <div class="payment-icon">✅</div>
-                <h3>Paid Successfully?</h3>
-                <p>Once you finish payment in your UPI app, click below to get your receipt.</p>
-                <button onclick="generateReceipt('${amount}')" class="receipt-btn">Confirm & Get Receipt</button>
+
+            <div id="step-verify" style="display:none;">
+                <div class="payment-icon">⏳</div>
+                <h3>Verifying Payment...</h3>
+                <p>Once you finish in your UPI app, click below to generate your digital receipt.</p>
+                <button onclick="generateFinalSuccess('${amount}')" class="receipt-btn">Confirm & Get Receipt</button>
             </div>
         </div>
     `;
     document.body.appendChild(overlay);
 }
 
-function showVerificationUI() {
-    document.getElementById('payment-ui').style.display = 'none';
-    document.getElementById('verify-ui').style.display = 'block';
+// Transition from "Pay" to "Verify"
+function moveToVerify(amount) {
+    // Small delay to allow the UPI app to trigger first
+    setTimeout(() => {
+        document.getElementById('step-pay').style.display = 'none';
+        document.getElementById('step-verify').style.display = 'block';
+    }, 1000);
 }
 
-
-function generateReceipt(amount) {
+// STEP 2: SUCCESS VERIFICATION & QR GENERATION
+function generateFinalSuccess(amount) {
     const orderID = "CF" + Math.floor(Math.random() * 9000 + 1000);
-    
-    // PLEASING SUCCESS MESSAGE
-    const successHTML = `
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=OrderID:${orderID}|Total:${amount}`;
+
+    const card = document.querySelector('.payment-card');
+    card.innerHTML = `
         <div class="success-ui">
             <div class="check-icon">✨ ✅ ✨</div>
-            <h2 style="color: #2e7d32;">Order Placed!</h2>
-            <p>We've received your payment of <b>₹${amount}</b>.</p>
-            <p>Your order <b>#${orderID}</b> is now in the kitchen!</p>
+            <h2 style="color: #2e7d32;">Payment Received!</h2>
+            <p>Order <b>#${orderID}</b> is being prepared.</p>
             
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${orderID}" class="qr-code">
+            <img src="${qrUrl}" class="qr-code" alt="Scan at Counter">
             
-            <button onclick="sendFinalWhatsApp('${orderID}', '${amount}')" class="pay-btn">
+            <button onclick="sendWhatsAppReceipt('${orderID}', '${amount}')" class="pay-btn">
                 Send Receipt to WhatsApp
             </button>
-            <button onclick="closeModal()" class="close-link">Back to Menu</button>
+            <button onclick="location.reload()" class="close-link">Order Something Else</button>
         </div>
     `;
-    
-    document.querySelector('.payment-card').innerHTML = successHTML;
 }
 
-function sendFinalWhatsApp(id, amt) {
-    const msg = `🔖 *CAFE RECEIPT* %0a------------------%0aOrder ID: ${id}%0aAmount: ₹${amt}%0aStatus: ✅ PAID%0a------------------%0aThank you! Visit again. 🙏`;
+// STEP 3: WHATSAPP RECEIPT
+function sendWhatsAppReceipt(id, amt) {
+    const msg = `🔖 *CAFE RECEIPT* %0a------------------%0aOrder ID: ${id}%0aAmount: ₹${amt}%0aStatus: ✅ PAID%0a------------------%0aSee you at the counter! 🙏`;
     window.open(`https://wa.me/${MY_PHONE}?text=${msg}`, '_blank');
 }
 
+// STEP 4: PLEASING FAILURE HANDLER
+function closeModal() {
+    const overlay = document.querySelector('.payment-overlay');
+    // Change text to show a pleasing message before closing
+    const card = document.querySelector('.payment-card');
+    card.innerHTML = `
+        <div class="failure-ui">
+            <div class="payment-icon">☕</div>
+            <h3>No Problem!</h3>
+            <p>Your items are still in the cart. We're ready whenever you are!</p>
+            <button onclick="document.querySelector('.payment-overlay').remove()" class="pay-btn" style="background:#666">Back to Menu</button>
+        </div>
+    `;
+    setTimeout(() => { if(overlay) overlay.remove(); }, 3000);
+}
+
+
+__________________________________________________________________________________
 function closeModal() {
     const overlay = document.querySelector('.payment-overlay');
     overlay.classList.remove('active');
